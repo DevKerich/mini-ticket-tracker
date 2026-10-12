@@ -32,12 +32,16 @@ export const updateTicketSchema = z
     message: 'provide at least one of: status, priority',
   });
 
+// Numbers beyond the safe-integer range would otherwise pass validation and
+// fail inside Postgres (bigint / OFFSET overflow) as a 500.
+const safeInt = () => z.coerce.number().int().max(Number.MAX_SAFE_INTEGER);
+
 export const listQuerySchema = z.object({
   status: z.enum(STATUSES).optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(MAX_LIMIT).default(DEFAULT_LIMIT),
+  page: safeInt().min(1).default(1),
+  limit: safeInt().min(1).max(MAX_LIMIT).default(DEFAULT_LIMIT),
 });
 
 export const idParamsSchema = z.object({
-  id: z.coerce.number().int().positive(),
+  id: safeInt().positive(),
 });

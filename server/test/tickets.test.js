@@ -46,6 +46,11 @@ describe('POST /tickets', () => {
       assert.equal(res.body.error.message, 'Validation failed');
     }
   });
+
+  test('rejects an oversized body with 413, not 500', async () => {
+    const res = await createTicket({ title: 'big', description: 'x'.repeat(200_000) });
+    assert.equal(res.status, 413);
+  });
 });
 
 describe('GET /tickets', () => {
@@ -94,8 +99,13 @@ describe('PATCH /tickets/:id', () => {
     const empty = await request(app).patch(`/tickets/${created.id}`).send({});
     assert.equal(empty.status, 400);
 
-    const badId = await request(app).patch('/tickets/abc').send({ status: 'closed' });
-    assert.equal(badId.status, 400);
+    for (const id of ['abc', '100000000000000000000']) {
+      const badId = await request(app).patch(`/tickets/${id}`).send({ status: 'closed' });
+      assert.equal(badId.status, 400, `expected 400 for id ${id}`);
+    }
+
+    const hugePage = await request(app).get('/tickets?page=100000000000000000000');
+    assert.equal(hugePage.status, 400);
   });
 });
 

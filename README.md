@@ -21,7 +21,7 @@ Requires Docker with Compose.
 docker compose up --build
 ```
 
-Open **http://localhost:3000**. The API and the built UI are served from the same container; migrations run automatically on startup. Postgres is exposed on `localhost:5432` (user/password `postgres`/`postgres`), and a separate `tickets_test` database is created for the tests.
+Open **http://localhost:3000**. The API and the built UI are served from the same container; migrations run automatically on startup. Postgres is exposed on `localhost:5433` (user/password `postgres`/`postgres`; 5433 so it doesn't clash with a local Postgres on 5432), and a separate `tickets_test` database is created for the tests.
 
 ### Option B — Local development
 
@@ -43,7 +43,7 @@ npm install
 npm run dev
 ```
 
-`DATABASE_URL` defaults to `postgres://postgres:postgres@localhost:5432/tickets`, so it can be omitted if that matches your setup.
+`DATABASE_URL` defaults to `postgres://postgres:postgres@localhost:5432/tickets`, so it can be omitted if that matches your setup. If you use the Docker database (`docker compose up db`) instead, it's on port **5433**, so use `localhost:5433` in the URLs here and below.
 
 ### Tests
 
@@ -52,9 +52,12 @@ The tests are integration tests: they boot the real Express app with [supertest]
 ```bash
 cd server
 TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/tickets_test npm test
+
+# or, against the database started by docker compose:
+TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5433/tickets_test npm test
 ```
 
-They cover: create (defaults + validation errors), list (status filter + pagination), update (status/priority, 404, 400), and stats (zero counts and grouped counts).
+They cover: create (defaults, validation errors, oversized body → 413), list (status filter + pagination), update (status/priority, 404, 400 incl. out-of-range ids), and stats (zero counts and grouped counts).
 
 ## API
 

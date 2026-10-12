@@ -6,7 +6,9 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: tickets
     ports:
-      - "5432:5432" # exposed so tests / local dev can use the same DB server
+      # Host port 5433 so it doesn't clash with a Postgres already running
+      # locally on 5432; exposed so tests / local dev can use this DB server.
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./scripts/create-test-db.sql:/docker-entrypoint-initdb.d/create-test-db.sql:ro

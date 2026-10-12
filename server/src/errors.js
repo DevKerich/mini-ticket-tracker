@@ -39,6 +39,12 @@ export function errorHandler(err, req, res, next) {
     err = new HttpError(400, 'Request body is not valid JSON');
   }
 
+  // Other client errors from express.json() (e.g. 413 body too large) carry
+  // their own status and are marked safe to expose.
+  if (!(err instanceof HttpError) && err.expose && err.status >= 400 && err.status < 500) {
+    err = new HttpError(err.status, err.message);
+  }
+
   if (err instanceof HttpError) {
     return res.status(err.status).json({
       error: { message: err.message, ...(err.details && { details: err.details }) },

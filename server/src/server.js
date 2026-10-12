@@ -16,5 +16,7 @@ const server = app.listen(config.port, () => {
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
     server.close(() => pool.end().then(() => process.exit(0)));
+    // close() waits for every socket; idle keep-alive ones would hold it open.
+    server.closeIdleConnections();
   });
 }
