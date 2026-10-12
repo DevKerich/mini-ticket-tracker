@@ -79,6 +79,15 @@ Example responses:
              "details": [{ "field": "title", "message": "title is required" }] } }
 ```
 
+## UI
+
+One page with two views, switched from the header (the choice is remembered per browser):
+
+- **List**: status tabs with counts (from `/tickets/stats`, so they cover all tickets, not just the current page), a paginated table showing priority and status, an inline status pill to change status, and an inline "Add ticket" row.
+- **Board**: one column per status. Change a ticket's status by dragging its card to another column, or with the status pill on the card (keyboard-friendly). Each column loads its tickets through the same `GET /tickets?status=` endpoint, 20 at a time with "Show more", up to the API's limit of 100.
+
+Plain CSS with light and dark themes, no UI library. On narrow screens the list rows stack and the board columns scroll sideways.
+
 ## Decisions & Tradeoffs
 
 **Assumptions** (where the brief left room):

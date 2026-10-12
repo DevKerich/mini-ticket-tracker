@@ -1,105 +1,77 @@
 import { useCallback, useEffect, useState } from 'react';
-import { STATUSES, STATUS_LABELS, getStats, listTickets } from './api.js';
-import StatsBar from './components/StatsBar.jsx';
-import TicketForm from './components/TicketForm.jsx';
+import { getStats } from './api.js';
+import BoardView from './components/BoardView.jsx';
+import { BoardIcon, ListIcon, TicketIcon } from './components/Icons.jsx';
 import TicketList from './components/TicketList.jsx';
 
-const PAGE_SIZE = 10;
+const VIEWS = [
+  { key: 'list', label: 'List', Icon: ListIcon },
+  { key: 'board', label: 'Board', Icon: BoardIcon },
+];
+
+// The chosen view is a per-browser convenience; storage may be unavailable
+// (private mode), so failures fall back to the list view.
+function loadView() {
+  try {
+    return localStorage.getItem('view') === 'board' ? 'board' : 'list';
+  } catch {
+    return 'list';
+  }
+}
 
 export default function App() {
-  const [statusFilter, setStatusFilter] = useState('');
-  const [page, setPage] = useState(1);
-  const [tickets, setTickets] = useState([]);
-  const [pagination, setPagination] = useState(null);
+  const [view, setView] = useState(loadView);
   const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Re-fetch list and stats together after any change. Simpler and always
-  // correct versus patching local state by hand; the data set is small.
-  const refresh = useCallback(async () => {
-    setError(null);
-    try {
-      const [list, s] = await Promise.all([
-        listTickets({ status: statusFilter, page, limit: PAGE_SIZE }),
-        getStats(),
-      ]);
-      // If the current page emptied (e.g. last ticket on it changed status
-      // under a filter), step back a page.
-      if (list.data.length === 0 && page > 1) {
-        setPage(page - 1);
-        return;
-      }
-      setTickets(list.data);
-      setPagination(list.pagination);
-      setStats(s);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [statusFilter, page]);
+  // Bumped after every create/update. Views and stats re-fetch when it
+  // changes: simpler and always correct versus patching local state by hand.
+  const [version, setVersion] = useState(0);
+  const refresh = useCallback(() => setVersion((v) => v + 1), []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    getStats()
+      .then(setStats)
+      .catch(() => setStats(null));
+  }, [version]);
 
-  const changeFilter = (value) => {
-    setStatusFilter(value);
-    setPage(1);
-  };
+  function chooseView(key) {
+    setView(key);
+    try {
+      localStorage.setItem('view', key);
+    } catch {
+      // ignore: the choice just won't persist
+    }
+  }
 
   return (
     <main className="container">
-      <header>
-        <h1>Mini Ticket Tracker</h1>
-        <StatsBar stats={stats} />
+      <header className="page-header">
+        <h1 className="breadcrumb">
+          <TicketIcon className="brand-icon" size={18} />
+          <span className="muted">Support</span>
+          <span className="sep" aria-hidden="true">
+            /
+          </span>
+          Tickets
+        </h1>
+        <div className="view-switch" role="group" aria-label="View">
+          {VIEWS.map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={view === key}
+              onClick={() => chooseView(key)}
+            >
+              <Icon /> {label}
+            </button>
+          ))}
+        </div>
       </header>
 
-      <TicketForm onCreated={() => (page === 1 ? refresh() : setPage(1))} />
-
-      <section className="card">
-        <div className="toolbar">
-          <h2>Tickets</h2>
-          <label>
-            Status{' '}
-            <select value={statusFilter} onChange={(e) => changeFilter(e.target.value)}>
-              <option value="">All</option>
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {STATUS_LABELS[s]}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        {error && (
-          <p className="error" role="alert">
-            {error} <button onClick={refresh}>Retry</button>
-          </p>
-        )}
-
-        {loading ? (
-          <p className="muted">Loading…</p>
-        ) : (
-          <TicketList tickets={tickets} onUpdated={refresh} />
-        )}
-
-        {pagination && pagination.totalPages > 1 && (
-          <nav className="pager" aria-label="Pagination">
-            <button disabled={page <= 1} onClick={() => setPage(page - 1)}>
-              ← Prev
-            </button>
-            <span>
-              Page {pagination.page} of {pagination.totalPages}
-            </span>
-            <button disabled={page >= pagination.totalPages} onClick={() => setPage(page + 1)}>
-              Next →
-            </button>
-          </nav>
-        )}
-      </section>
+      {view === 'list' ? (
+        <TicketList stats={stats} version={version} onChanged={refresh} />
+      ) : (
+        <BoardView version={version} onChanged={refresh} />
+      )}
     </main>
   );
 }
