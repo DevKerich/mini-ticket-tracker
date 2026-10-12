@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
-import { getStats } from './api.js';
+import { useCallback, useState } from 'react';
 import BoardView from './components/BoardView.jsx';
 import { BoardIcon, ListIcon, TicketIcon } from './components/Icons.jsx';
 import TicketList from './components/TicketList.jsx';
@@ -21,17 +20,10 @@ function loadView() {
 
 export default function App() {
   const [view, setView] = useState(loadView);
-  const [stats, setStats] = useState(null);
-  // Bumped after every create/update. Views and stats re-fetch when it
+  // Bumped after every create/update. The active view re-fetches when it
   // changes: simpler and always correct versus patching local state by hand.
   const [version, setVersion] = useState(0);
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
-
-  useEffect(() => {
-    getStats()
-      .then(setStats)
-      .catch(() => setStats(null));
-  }, [version]);
 
   function chooseView(key) {
     setView(key);
@@ -68,7 +60,7 @@ export default function App() {
       </header>
 
       {view === 'list' ? (
-        <TicketList stats={stats} version={version} onChanged={refresh} />
+        <TicketList version={version} onChanged={refresh} />
       ) : (
         <BoardView version={version} onChanged={refresh} />
       )}

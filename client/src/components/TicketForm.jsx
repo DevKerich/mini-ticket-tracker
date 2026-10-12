@@ -1,9 +1,8 @@
 import { useId, useState } from 'react';
-import { PRIORITIES, createTicket } from '../api.js';
+import { PRIORITIES, PRIORITY_LABELS, createTicket } from '../api.js';
 import { PlusIcon } from './Icons.jsx';
 
 const EMPTY = { title: '', description: '', priority: 'medium' };
-const PRIORITY_LABELS = { low: 'Low', medium: 'Medium', high: 'High' };
 
 // Inline "+ Add ticket" row that expands into a small form in place.
 export default function TicketForm({ onCreated }) {

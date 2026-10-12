@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { STATUSES, STATUS_LABELS, listTickets } from '../api.js';
+import { STATUSES, STATUS_LABELS, getStats, listTickets } from '../api.js';
 import { ChevronLeftIcon, ChevronRightIcon } from './Icons.jsx';
 import TicketForm from './TicketForm.jsx';
 import { PriorityFlag, StatusSelect, TimeAgo, useTicketUpdate } from './TicketBits.jsx';
@@ -31,20 +31,23 @@ function StatusTabs({ stats, value, onChange }) {
   );
 }
 
-export default function TicketList({ stats, version, onChanged }) {
+export default function TicketList({ version, onChanged }) {
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
   const [tickets, setTickets] = useState([]);
   const [pagination, setPagination] = useState(null);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { update, savingId, savedId, error: updateError } = useTicketUpdate(onChanged);
 
+  // List and stats load together, so a failure in either shows the same
+  // error banner with Retry.
   useEffect(() => {
     let cancelled = false;
     setError(null);
-    listTickets({ status: statusFilter, page, limit: PAGE_SIZE })
-      .then((list) => {
+    Promise.all([listTickets({ status: statusFilter, page, limit: PAGE_SIZE }), getStats()])
+      .then(([list, s]) => {
         if (cancelled) return;
         // If the current page emptied (e.g. its last ticket changed status
         // under a filter), step back a page.
@@ -54,6 +57,7 @@ export default function TicketList({ stats, version, onChanged }) {
         }
         setTickets(list.data);
         setPagination(list.pagination);
+        setStats(s);
       })
       .catch((err) => !cancelled && setError(err.message))
       .finally(() => !cancelled && setLoading(false));
@@ -68,6 +72,8 @@ export default function TicketList({ stats, version, onChanged }) {
   };
 
   const onCreated = () => {
+    // New tickets are always open; switch away from a tab that would hide it.
+    if (statusFilter && statusFilter !== 'open') setStatusFilter('');
     setPage(1);
     onChanged();
   };

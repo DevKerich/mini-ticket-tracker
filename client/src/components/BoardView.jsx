@@ -45,7 +45,7 @@ function BoardColumn({ status, version, onChanged, updater }) {
       aria-label={`${STATUS_LABELS[status]} tickets`}
       onDragOver={(e) => {
         e.preventDefault();
-        setDragOver(true);
+        if (!dragOver) setDragOver(true); // dragover fires continuously
       }}
       onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget) && setDragOver(false)}
       onDrop={handleDrop}
