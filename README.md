@@ -2,6 +2,10 @@
 
 A small support-ticket tracker: a REST API (Node.js + Express), a PostgreSQL database, and a single-page React UI.
 
+![List view](docs/list-view.png)
+
+![Board view](docs/board-view.png)
+
 ```
 server/   Express API, SQL migrations, integration tests
 client/   React (Vite) single-page UI
